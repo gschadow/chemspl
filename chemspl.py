@@ -6,10 +6,11 @@ from datetime import datetime
 import re
 
 splns = "urn:hl7-org:v3"
-nsmap = {"h": splns, "xsi": "http://www.w3.org/2001/XMLSchema-instance"}
+nsmape = {None: splns, "xsi": "http://www.w3.org/2001/XMLSchema-instance"}
+nsmapp = {"h": splns, "xsi": "http://www.w3.org/2001/XMLSchema-instance"}
 xsiType = ET.QName("xsi", "type")
 xsiSchemaLocation = ET.QName("xsi", "schemaLocation")
-E = ElementMaker(namespace=splns, nsmap=nsmap)
+E = ElementMaker(namespace=splns, nsmap=nsmape)
 elementChemMap = {} # a map of Element objects to Chem objects
 
 # builds RDKit reaction and substance objects found in a reaction SPL file
@@ -22,16 +23,16 @@ def read_spl(spl_file):
     rootElement = elementTree.getroot()
     # go over all the reactions and interactors, but you can instead go over all substances first
     # and create the required object and associate them on the elementChem map,
-    for substanceElement in rootElement.xpath(".//h:identifiedSubstance/h:identifiedSubstance",namespaces=nsmap):
-        molfileText = substanceElement.xpath("./h:moiety/h:subjectOf/h:characteristic/h:value[@mediaType='application/x-mdl-molfile']", namespaces=nsmap)[0].text
+    for substanceElement in rootElement.xpath(".//h:identifiedSubstance/h:identifiedSubstance",namespaces=nsmapp):
+        molfileText = substanceElement.xpath("./h:moiety/h:subjectOf/h:characteristic/h:value[@mediaType='application/x-mdl-molfile']", namespaces=nsmapp)[0].text
         substanceObject = Chem.MolFromMolBlock(molfileText)
         elementChemMap[substanceElement] = substanceObject
     # now go over all reactions and create the reaction objects.
-    for reactionElement in rootElement.xpath(".//h:processStep/h:component/h:processStep", namespaces=nsmap):
+    for reactionElement in rootElement.xpath(".//h:processStep/h:component/h:processStep", namespaces=nsmapp):
         reactionObject = Chem.ChemicalReaction()
-        for reactantElement in reactionElement.xpath("./h:interactor[@typeCode = 'CSM']/h:identifiedSubstance/h:identifiedSubstance", namespaces=nsmap):
+        for reactantElement in reactionElement.xpath("./h:interactor[@typeCode = 'CSM']/h:identifiedSubstance/h:identifiedSubstance", namespaces=nsmapp):
             reactionObject.AddReactantTemplate(elementChemMap[reactantElement])
-        for productElement in reactionElement.xpath("./h:interactor[@typeCode = 'PRD']/h:identifiedSubstance/h:identifiedSubstance", namespaces=nsmap):
+        for productElement in reactionElement.xpath("./h:interactor[@typeCode = 'PRD']/h:identifiedSubstance/h:identifiedSubstance", namespaces=nsmapp):
             reactionObject.AddProductTemplate(elementChemMap[productElement])
         elementChemMap[reactionElement] = reactionObject
     return elementTree, elementChemMap
@@ -79,13 +80,7 @@ def createSubstanceElement(substanceObject):
                    E("characteristic",
                      E("code",displayName="Chemical Structure",codeSystem="2.16.840.1.113883.3.26.1.1",code="C103240"),
                      E("value", {xsiType: "ED", "mediaType": "application/x-inchi-key"}, 
-                     Chem.MolToInchiKey(substanceObject)
-                      )
-                    )
-                  )
-                )
-              )
-            )
+                     Chem.MolToInchiKey(substanceObject)))))))
 
 def createReactionElement(reactionObject):                             
     reactionElement = E("processStep")
